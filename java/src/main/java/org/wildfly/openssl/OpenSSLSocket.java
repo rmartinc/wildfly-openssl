@@ -27,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -301,14 +302,14 @@ public class OpenSSLSocket extends SSLSocket {
             for (; ; ) {
                 SSLEngineResult result;
                 if (write) {
-                    buffer.clear();
+                    ((Buffer)buffer).clear();
                     result = sslEngine.wrap(EMPTY_DIRECT, buffer);
                     if (result.bytesProduced() > 0) {
-                        buffer.flip();
+                        ((Buffer)buffer).flip();
                         try (DefaultByteBufferPool.PooledByteBuffer indirectPooled = DefaultByteBufferPool.HEAP_POOL.allocate()) {
                             ByteBuffer ind = indirectPooled.getBuffer();
                             ind.put(buffer);
-                            ind.flip();
+                            ((Buffer)ind).flip();
                             getDelegateOutputStream().write(ind.array(), ind.arrayOffset() + ind.position(), ind.remaining());
                         }
                     }
@@ -321,8 +322,8 @@ public class OpenSSLSocket extends SSLSocket {
                         readOffset += read;
 
                         if (read > 0) {
-                            indirectPooled.getBuffer().position(readOffset);
-                            indirectPooled.getBuffer().flip();
+                            ((Buffer)indirectPooled.getBuffer()).position(readOffset);
+                            ((Buffer)indirectPooled.getBuffer()).flip();
                         } else {
                             close();
                             throw new SSLException(MESSAGES.connectionClosed());
@@ -332,16 +333,16 @@ public class OpenSSLSocket extends SSLSocket {
                                     throw new IllegalStateException(MESSAGES.runningHandshakeWithBufferedData());
                                 }
                                 unwrappedData = DefaultByteBufferPool.DIRECT_POOL.allocate();
-                                buffer.clear();
+                                ((Buffer)buffer).clear();
                                 buffer.put(indirectPooled.getBuffer());
-                                buffer.flip();
+                                ((Buffer)buffer).flip();
                                 result = sslEngine.unwrap(buffer, unwrappedData.getBuffer());
                                 if(result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                                     underflow = true;
                                 }
-                                indirectPooled.getBuffer().clear();
+                                ((Buffer)indirectPooled.getBuffer()).clear();
                                 indirectPooled.getBuffer().put(buffer);
-                                indirectPooled.getBuffer().flip();
+                                ((Buffer)indirectPooled.getBuffer()).flip();
                                 if (result.getStatus() == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                                     //try and read some more from the socket
                                     indirectPooled.getBuffer().compact();
@@ -427,7 +428,7 @@ public class OpenSSLSocket extends SSLSocket {
             dataToUnwrap = null;
         } else {
             indirectPooled = DefaultByteBufferPool.HEAP_POOL.allocate();
-            indirectPooled.getBuffer().flip();
+            ((Buffer)indirectPooled.getBuffer()).flip();
         }
         boolean freeIndirect = true;
         try (DefaultByteBufferPool.PooledByteBuffer direct = DefaultByteBufferPool.DIRECT_POOL.allocate()){
@@ -441,23 +442,23 @@ public class OpenSSLSocket extends SSLSocket {
                         return -1;
                     }
                     readOffset += read;
-                    indirectPooled.getBuffer().position(readOffset);
-                    indirectPooled.getBuffer().flip();
+                    ((Buffer)indirectPooled.getBuffer()).position(readOffset);
+                    ((Buffer)indirectPooled.getBuffer()).flip();
                 }
                 first = false;
-                direct.getBuffer().clear();
+                ((Buffer)direct.getBuffer()).clear();
                 direct.getBuffer().put(indirectPooled.getBuffer());
-                direct.getBuffer().flip();
+                ((Buffer)direct.getBuffer()).flip();
                 SSLEngineResult result = sslEngine.unwrap(direct.getBuffer(), unwrappedData.getBuffer());
-                indirectPooled.getBuffer().clear();
+                ((Buffer)indirectPooled.getBuffer()).clear();
                 indirectPooled.getBuffer().put(direct.getBuffer());
-                indirectPooled.getBuffer().flip();
-                unwrappedData.getBuffer().flip();
+                ((Buffer)indirectPooled.getBuffer()).flip();
+                ((Buffer)unwrappedData.getBuffer()).flip();
                 if (result.bytesProduced() == 0) {
                     //try and read some more from the socket
                     indirectPooled.getBuffer().compact();
                     readOffset = indirectPooled.getBuffer().position();
-                    unwrappedData.getBuffer().clear();
+                    ((Buffer)unwrappedData.getBuffer()).clear();
                     continue;
                 }
                 int ret = Math.min(len, unwrappedData.getBuffer().remaining());
@@ -513,16 +514,16 @@ public class OpenSSLSocket extends SSLSocket {
                     int toWrite = len;
                     int written = 0;
                     while (toWrite > 0) {
-                        buf.clear();
+                        ((Buffer)buf).clear();
                         int thisBufferAmount = Math.min(toWrite, buf.remaining());
                         buf.put(b, off + written, thisBufferAmount);
                         toWrite -= thisBufferAmount;
                         written += thisBufferAmount;
-                        buf.flip();
+                        ((Buffer)buf).flip();
                         while (buf.hasRemaining()) {
-                            encryptedPooled.getBuffer().clear();
+                            ((Buffer)encryptedPooled.getBuffer()).clear();
                             SSLEngineResult result = sslEngine.wrap(buf, encryptedPooled.getBuffer());
-                            encryptedPooled.getBuffer().flip();
+                            ((Buffer)encryptedPooled.getBuffer()).flip();
                             if (result.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                                 close();
                                 throw new IOException(MESSAGES.bufferOverflow());//should never happen

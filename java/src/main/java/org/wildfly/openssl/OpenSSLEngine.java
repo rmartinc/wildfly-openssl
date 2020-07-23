@@ -23,6 +23,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSession;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ReadOnlyBufferException;
 import java.util.ArrayList;
@@ -246,7 +247,7 @@ public final class OpenSSLEngine extends SSLEngine {
             final long addr = SSL.getInstance().bufferAddress(src) + pos;
             sslWrote = SSL.getInstance().writeToSSL(ssl, addr, len);
             if (sslWrote > 0) {
-                src.position(pos + sslWrote);
+                ((Buffer)src).position(pos + sslWrote);
                 return sslWrote;
             }
         } else {
@@ -254,20 +255,20 @@ public final class OpenSSLEngine extends SSLEngine {
             try {
                 final long addr = memoryAddress(buf);
 
-                src.limit(pos + len);
+                ((Buffer)src).limit(pos + len);
 
                 buf.put(src);
-                src.limit(limit);
+                ((Buffer)src).limit(limit);
 
                 sslWrote = SSL.getInstance().writeToSSL(ssl, addr, len);
                 if (sslWrote > 0) {
-                    src.position(pos + sslWrote);
+                    ((Buffer)src).position(pos + sslWrote);
                     return sslWrote;
                 } else {
-                    src.position(pos);
+                    ((Buffer)src).position(pos);
                 }
             } finally {
-                buf.clear();
+                ((Buffer)buf).clear();
                 ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
@@ -285,7 +286,7 @@ public final class OpenSSLEngine extends SSLEngine {
             final long addr = SSL.getInstance().bufferAddress(src) + pos;
             final int netWrote = SSL.getInstance().writeToBIO(networkBIO, addr, len);
             if (netWrote >= 0) {
-                src.position(pos + netWrote);
+                ((Buffer)src).position(pos + netWrote);
                 return netWrote;
             }
         } else {
@@ -297,13 +298,13 @@ public final class OpenSSLEngine extends SSLEngine {
 
                 final int netWrote = SSL.getInstance().writeToBIO(networkBIO, addr, len);
                 if (netWrote >= 0) {
-                    src.position(pos + netWrote);
+                    ((Buffer)src).position(pos + netWrote);
                     return netWrote;
                 } else {
-                    src.position(pos);
+                    ((Buffer)src).position(pos);
                 }
             } finally {
-                buf.clear();
+                ((Buffer)buf).clear();
                 ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
@@ -322,7 +323,7 @@ public final class OpenSSLEngine extends SSLEngine {
             final int len = dst.limit() - pos;
             final int sslRead = SSL.getInstance().readFromSSL(ssl, addr, len);
             if (sslRead > 0) {
-                dst.position(pos + sslRead);
+                ((Buffer)dst).position(pos + sslRead);
                 return sslRead;
             } else {
                 long error = SSL.getInstance().getLastErrorNumber();
@@ -346,10 +347,10 @@ public final class OpenSSLEngine extends SSLEngine {
 
                 final int sslRead = SSL.getInstance().readFromSSL(ssl, addr, len);
                 if (sslRead > 0) {
-                    buf.limit(sslRead);
-                    dst.limit(pos + sslRead);
+                    ((Buffer)buf).limit(sslRead);
+                    ((Buffer)dst).limit(pos + sslRead);
                     dst.put(buf);
-                    dst.limit(limit);
+                    ((Buffer)dst).limit(limit);
                     return sslRead;
                 } else {
                     long error = SSL.getInstance().getLastErrorNumber();
@@ -364,7 +365,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                 }
             } finally {
-                buf.clear();
+                ((Buffer)buf).clear();
                 ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
@@ -381,7 +382,7 @@ public final class OpenSSLEngine extends SSLEngine {
             final long addr = SSL.getInstance().bufferAddress(dst) + pos;
             final int bioRead = SSL.getInstance().readFromBIO(networkBIO, addr, pending);
             if (bioRead > 0) {
-                dst.position(pos + bioRead);
+                ((Buffer)dst).position(pos + bioRead);
                 return bioRead;
             }
         } else {
@@ -391,15 +392,15 @@ public final class OpenSSLEngine extends SSLEngine {
 
                 final int bioRead = SSL.getInstance().readFromBIO(networkBIO, addr, pending);
                 if (bioRead > 0) {
-                    buf.limit(bioRead);
+                    ((Buffer)buf).limit(bioRead);
                     int oldLimit = dst.limit();
-                    dst.limit(dst.position() + bioRead);
+                    ((Buffer)dst).limit(dst.position() + bioRead);
                     dst.put(buf);
-                    dst.limit(oldLimit);
+                    ((Buffer)dst).limit(oldLimit);
                     return bioRead;
                 }
             } finally {
-                buf.clear();
+                ((Buffer)buf).clear();
                 ByteBufferUtils.cleanDirectBuffer(buf);
             }
         }
@@ -462,7 +463,7 @@ public final class OpenSSLEngine extends SSLEngine {
             }
             if(serverSelectedCipher == -1 && !clientMode) {
                 ByteBuffer duplicate = dst.duplicate();
-                duplicate.flip();
+                ((Buffer)duplicate).flip();
                 serverSelectedCipher = OpenSSLServerHelloExplorer.getCipherSuite(duplicate);
                 SSL.getInstance().saveServerCipher(ssl, serverSelectedCipher);
             }
@@ -512,7 +513,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     }
                     if(serverSelectedCipher == -1 && !clientMode) {
                         ByteBuffer duplicate = dst.duplicate();
-                        duplicate.flip();
+                        ((Buffer)duplicate).flip();
                         serverSelectedCipher = OpenSSLServerHelloExplorer.getCipherSuite(duplicate);
                         SSL.getInstance().saveServerCipher(ssl, serverSelectedCipher);
                     }
@@ -542,7 +543,7 @@ public final class OpenSSLEngine extends SSLEngine {
                     remainingInUnwrapRecord = frameLength;
                 }
                 if (src.remaining() >= remainingInUnwrapRecord) {
-                    src.limit(src.position() + remainingInUnwrapRecord);
+                    ((Buffer)src).limit(src.position() + remainingInUnwrapRecord);
                 }
             }
             try {
@@ -676,7 +677,7 @@ public final class OpenSSLEngine extends SSLEngine {
                 }
             } finally {
                 if (oldLimit > 0) {
-                    src.limit(oldLimit);
+                    ((Buffer)src).limit(oldLimit);
                 }
             }
             if (produced == 0 && consumed == 0) {

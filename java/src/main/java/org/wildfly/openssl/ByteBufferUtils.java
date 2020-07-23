@@ -19,6 +19,7 @@ package org.wildfly.openssl;
 
 import org.wildfly.openssl.util.DirectByteBufferDeallocator;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 public class ByteBufferUtils {
@@ -68,7 +69,7 @@ public class ByteBufferUtils {
         }
 
         // Copy data
-        in.flip();
+        ((Buffer)in).flip();
         out.put(in);
 
         if (direct) {

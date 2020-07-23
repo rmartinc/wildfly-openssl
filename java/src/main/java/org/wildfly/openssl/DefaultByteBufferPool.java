@@ -19,6 +19,7 @@ package org.wildfly.openssl;
 
 import java.io.Closeable;
 import java.lang.ref.WeakReference;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -133,7 +134,7 @@ class DefaultByteBufferPool {
         if (local != null) {
             local.allocationDepth++;
         }
-        buffer.clear();
+        ((Buffer)buffer).clear();
         return new DefaultPooledBuffer(this, buffer, leakDetectionPercent == 0 ? false : (++count % 100 > leakDetectionPercent));
     }
 
